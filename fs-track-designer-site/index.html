@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FS Track Designer</title>
+<meta name="theme-color" content="#0e1014">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e1014;--panel:#161920;--panel2:#1d212a;--line:#2a303c;--tx:#e7e9ee;--mut:#98a1b3;--acc:#f5b301;--blue:#3b82f6;--yel:#facc15;--org:#f97316;--red:#ef4444;--grn:#22c55e;--mono:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:13px/1.45 Inter,system-ui,sans-serif}
+#app{display:flex;height:100vh;overflow:hidden}
+aside{width:390px;min-width:330px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
+aside header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+aside header h1{margin:0;font-size:15px;font-weight:700;letter-spacing:.2px}
+aside header p{margin:2px 0 0;color:var(--mut);font-size:12px}
+nav{display:flex;border-bottom:1px solid var(--line)}
+nav button{flex:1;background:none;border:0;color:var(--mut);padding:10px 4px;font:inherit;font-weight:500;cursor:pointer;border-bottom:2px solid transparent}
+nav button.on{color:var(--tx);border-bottom-color:var(--acc)}
+.tab{display:none;overflow:auto;padding:12px 14px 40px;flex:1}
+.tab.on{display:block}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.card h3{margin:0 0 6px;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+.step{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--acc);color:#000;font-size:11px;font-weight:700}
+.mut{color:var(--mut)} .small{font-size:11.5px}
+label.f{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
+label.f span{color:var(--mut)}
+input[type=number],input[type=text],select{background:#0f1218;border:1px solid var(--line);color:var(--tx);border-radius:5px;padding:4px 6px;font:12px var(--mono);width:84px}
+input[type=text]{width:100%}
+input:focus,select:focus{outline:1px solid var(--acc);border-color:var(--acc)}
+.btn{background:#262b36;border:1px solid var(--line);color:var(--tx);border-radius:6px;padding:6px 10px;font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:#3b4252;background:#2c3240}
+.btn.pri{background:var(--acc);color:#111;border-color:var(--acc)}
+.btn.on{outline:2px solid var(--acc)}
+.btn.sm{padding:3px 7px;font-size:12px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.file{position:relative;overflow:hidden;display:inline-block}
+.file input{position:absolute;inset:0;opacity:0;cursor:pointer}
+details{margin-top:6px} summary{cursor:pointer;color:var(--acc);font-size:12px}
+details ol{padding-left:18px;margin:6px 0;color:var(--mut);font-size:12px}
+.seglist{display:flex;flex-direction:column;gap:5px}
+.seg{border:1px solid var(--line);border-radius:6px;padding:6px 7px;background:#12151b;cursor:pointer}
+.seg.sel{border-color:var(--acc);background:#1b1a12}
+.seg .top{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.seg .num{font:600 11px var(--mono);color:var(--mut);width:20px}
+.seg select{width:auto}
+.seg input[type=number]{width:58px}
+.seg .lab{color:var(--mut);font-size:11px}
+.seg .x{margin-left:auto;display:flex;gap:2px}
+.seg .x button{background:none;border:0;color:var(--mut);cursor:pointer;padding:2px 4px;font-size:13px}
+.seg .x button:hover{color:var(--tx)}
+.seg .info{font:11px var(--mono);color:var(--mut);margin-top:3px;padding-left:25px}
+.msg{font-size:11.5px;margin-top:2px;padding-left:25px}
+.err{color:#ff7b7b}.warn{color:#fbbf24}.info{color:var(--mut)}.ok{color:var(--grn)}
+.issues div{margin:3px 0;font-size:12px}
+main{flex:1;display:flex;flex-direction:column;min-width:0}
+#mapwrap{flex:1;position:relative;min-height:0;background:#0b0d10}
+#map{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+#prof{width:100%;height:100%;display:block}
+#profwrap{height:170px;border-top:1px solid var(--line);background:var(--panel);position:relative}
+.ov{position:absolute;background:rgba(18,21,27,.92);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;backdrop-filter:blur(4px)}
+#stats{top:10px;right:10px;min-width:210px;pointer-events:none}
+#stats .k{display:flex;justify-content:space-between;gap:14px}
+#stats .k b{font:500 12px var(--mono)}
+#tools{top:10px;left:10px;display:flex;gap:6px;padding:6px}
+#modebar{bottom:10px;left:50%;transform:translateX(-50%);display:none;border-color:var(--acc)}
+#legend{bottom:10px;right:10px;font-size:11px}
+#legend .bar{width:150px;height:8px;border-radius:4px;background:linear-gradient(90deg,#3b82f6,#22c55e,#facc15,#ef4444);margin:4px 0 2px}
+#toast{position:fixed;bottom:60px;pointer-events:none;left:50%;transform:translateX(-50%);background:#222833;border:1px solid var(--acc);padding:8px 14px;border-radius:8px;display:none;z-index:20;max-width:520px}
+textarea{width:100%;height:120px;background:#0f1218;color:var(--tx);border:1px solid var(--line);border-radius:6px;font:11px var(--mono)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:4px}
+hr{border:0;border-top:1px solid var(--line);margin:8px 0}
+kbd{font:11px var(--mono);background:#0f1218;border:1px solid var(--line);border-radius:3px;padding:0 4px}
+</style>
+</head>
+<body>
+<div id="app">
+<aside>
+  <header>
+    <h1>FS Track Designer</h1>
+    <p>Retas e curvas com raio exato, verificadas contra a tua área de testes → KML para o Google Earth.</p>
+  </header>
+  <nav>
+    <button data-tab="area" class="on">1 · Área</button>
+    <button data-tab="track">2 · Pista</button>
+    <button data-tab="car">Regras &amp; cones</button>
+    <button data-tab="exp">3 · Exportar</button>
+  </nav>
+
+  <!-- ÁREA -->
+  <section class="tab on" id="tab-area">
+    <div class="card">
+      <h3><span class="step">A</span> Importar o polígono do Google Earth</h3>
+      <div class="row"><span class="btn file pri">Escolher .kml / .kmz<input type="file" id="kmlIn" accept=".kml,.kmz,application/vnd.google-earth.kml+xml"></span></div>
+      <details><summary>Como exportar o polígono do Google Earth (web)</summary>
+        <ol>
+          <li>Garante que o polígono está guardado (botão <b>Concluído</b>).</li>
+          <li>No painel <b>Conteúdo do mapa</b>, clica nos <b>⋮</b> ao lado do título (ou nos ⋮ do projeto na lista de Projetos).</li>
+          <li>Escolhe <b>Exportar como ficheiro KML</b>. Se só aparecer KMZ, também serve.</li>
+          <li>Carrega aqui o ficheiro. Se tiveres vários polígonos (ex.: reta de cima + ligação + pista), entram todos como área utilizável.</li>
+        </ol>
+        <p class="small mut">Dica: desenha o polígono pelo limite do asfalto <i>limpo</i> (sem bermas/gravilha). A margem de segurança aplica-se depois.</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <h3><span class="step">B</span> Alternativa: screenshot como fundo</h3>
+      <p class="small mut" style="margin:0 0 6px">No Google Earth carrega em <b>2D</b> e na bússola (norte para cima) antes do print. Sem isso a escala fica distorcida.</p>
+      <div class="row">
+        <span class="btn file">Carregar imagem<input type="file" id="imgIn" accept="image/*"></span>
+        <button class="btn" id="bgDel">Remover</button>
+        <label class="row small mut">Opacidade <input type="range" id="bgOp" min="0.1" max="1" step="0.05" value="0.8" style="width:90px"></label>
+      </div>
+      <hr>
+      <div class="small mut">Georreferenciar: marca 2 pontos na imagem e dá as coordenadas (lidas na barra inferior do Google Earth ao passar o rato) <b>ou</b> só a distância entre eles (régua do GE).</div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn sm" id="gA">Marcar ponto A</button>
+        <button class="btn sm" id="gB">Marcar ponto B</button>
+        <span class="small mut" id="gState">—</span>
+      </div>
+      <label class="f"><span>Lat/lon A</span></label><input type="text" id="llA" placeholder="39°05'10.81&quot;N 8°57'48.18&quot;W  ou  39.08634, -8.96338">
+      <label class="f"><span>Lat/lon B</span></label><input type="text" id="llB" placeholder="idem para o ponto B">
+      <div class="row" style="margin-top:6px"><button class="btn sm pri" id="gApplyLL">Aplicar (lat/lon)</button></div>
+      <label class="f"><span>ou distância A–B (m)</span><input type="number" id="gDist" step="0.1"></label>
+      <div class="row"><button class="btn sm" id="gApplyD">Aplicar escala</button><span class="small mut">(assume norte para cima)</span></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="step">C</span> Desenhar a área à mão</h3>
+      <p class="small mut" style="margin:0 0 6px">Por cima da imagem de fundo: clica nos cantos do asfalto. <kbd>Enter</kbd> fecha, <kbd>Backspace</kbd> apaga o último, <kbd>Esc</kbd> cancela.</p>
+      <div class="row"><button class="btn" id="drawArea">Desenhar polígono</button><button class="btn" id="clrArea">Apagar áreas</button></div>
+      <div class="small mut" id="areaInfo" style="margin-top:6px"></div>
+      <div id="areaList" class="seglist" style="margin-top:6px"></div>
+      <p class="small mut" style="margin:6px 0 0">Clica num polígono (aqui ou no mapa) para o selecionar. Em <b>Editar</b>: arrasta os vértices, arrasta os ◇ do meio das arestas para criar um vértice novo, <kbd>Alt</kbd>+clique ou clique-direito num vértice para o apagar.</p>
+    </div>
+
+    <div class="card">
+      <h3>Referência (origem local)</h3>
+      <p class="small mut" style="margin:0 0 6px">x = Este, y = Norte, em metros a partir deste ponto. É definido automaticamente ao importar o KML.</p>
+      <input type="text" id="originTxt">
+      <div class="row" style="margin-top:6px"><button class="btn sm" id="originSet">Definir origem</button></div>
+    </div>
+  </section>
+
+  <!-- PISTA -->
+  <section class="tab" id="tab-track">
+    <div class="card">
+      <h3>Partida</h3>
+      <div class="row">
+        <label class="f"><span>x</span><input type="number" id="sx" step="0.5"></label>
+        <label class="f"><span>y</span><input type="number" id="sy" step="0.5"></label>
+        <label class="f"><span>rumo °</span><input type="number" id="sh" step="1"></label>
+      </div>
+      <p class="small mut" style="margin:2px 0 6px">Rumo: 0° = Norte, 90° = Este. No mapa arrasta o <span class="dot" style="background:var(--org)"></span>ponto laranja (mover) e o triângulo (rodar, <kbd>Shift</kbd> = livre).</p>
+      <div class="row">
+        <label class="f"><span>Largura pista (m)</span><input type="number" id="tw" step="0.25" min="2"></label>
+        <label class="row small"><input type="checkbox" id="closed"> Circuito fechado (endurance)</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Adicionar elemento <span class="small mut">(insere após o selecionado)</span></h3>
+      <div class="row">
+        <button class="btn sm" data-add="S">+ Reta</button>
+        <button class="btn sm" data-add="AL">↰ Curva esq.</button>
+        <button class="btn sm" data-add="AR">↱ Curva dir.</button>
+        <button class="btn sm" data-add="HL">⟲ Hairpin esq.</button>
+        <button class="btn sm" data-add="HR">⟳ Hairpin dir.</button>
+        <button class="btn sm" data-add="SL">⋯ Slalom</button>
+        <button class="btn sm" data-add="CH">≈ Chicane</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn sm" id="autoClose">Fechar circuito automaticamente</button>
+        <button class="btn sm" id="tplBtn">Exemplo</button>
+        <button class="btn sm" id="clrTrack">Limpar</button>
+        <button class="btn sm" id="undoBtn">↶ Desfazer</button>
+      </div>
+      <div id="closeInfo" class="small" style="margin-top:6px"></div>
+    </div>
+
+    <div class="seglist" id="segs"></div>
+
+    <div class="card issues" style="margin-top:10px">
+      <h3>Verificações</h3>
+      <div id="issues"></div>
+    </div>
+  </section>
+
+  <!-- CARRO & REGRAS -->
+  <section class="tab" id="tab-car">
+    <div class="card">
+      <h3>Regras de layout</h3>
+      <p class="small mut" style="margin:0 0 6px">Valores típicos de autocross/endurance FS. <b>Confirma na versão em vigor do regulamento</b> da tua competição (FSG/FSAE/FS Spain…) e ajusta aqui.</p>
+      <label class="f"><span>Hairpin: Ø exterior mín. (m)</span><input type="number" data-k="rules.hairpinOD" step="0.5"></label>
+      <label class="f"><span>Reta máx. c/ hairpins nos topos (m)</span><input type="number" data-k="rules.strHP" step="1"></label>
+      <label class="f"><span>Reta máx. c/ curvas largas (m)</span><input type="number" data-k="rules.strWide" step="1"></label>
+      <label class="f"><span>Slalom: espaçamento mín. (m)</span><input type="number" data-k="rules.slMin" step="0.5"></label>
+      <label class="f"><span>Slalom: espaçamento máx. (m)</span><input type="number" data-k="rules.slMax" step="0.5"></label>
+      <label class="f"><span>Slalom: folga lateral extra (m, cada lado)</span><input type="number" data-k="rules.slA" step="0.1"></label>
+      <label class="f"><span>Largura mínima (m)</span><input type="number" data-k="rules.minW" step="0.25"></label>
+      <hr>
+      <label class="f"><span>Margem aresta ↔ limite asfalto (m)</span><input type="number" data-k="rules.margin" step="0.25"></label>
+      <label class="f"><span>Separação mín. entre troços (m)</span><input type="number" data-k="rules.clear" step="0.25"></label>
+    </div>
+    <div class="card">
+      <h3>Cones</h3>
+      <label class="f"><span>Espaçamento em retas (m)</span><input type="number" data-k="cone.straight" step="0.5"></label>
+      <label class="f"><span>Espaçamento em curvas (m)</span><input type="number" data-k="cone.arc" step="0.5"></label>
+      <p class="small mut" style="margin:4px 0 0">Convenção FS Driverless: <span class="dot" style="background:var(--blue)"></span>azul à esquerda, <span class="dot" style="background:var(--yel)"></span>amarelo à direita, <span class="dot" style="background:var(--org)"></span>laranja na partida/chegada.</p>
+    </div>
+  </section>
+
+  <!-- EXPORTAR -->
+  <section class="tab" id="tab-exp">
+    <div class="card">
+      <h3>Google Earth</h3>
+      <p class="small mut" style="margin:0 0 6px">Superfície da pista, linha central, bordos azul/amarelo, cones e área.</p>
+      <div class="row"><button class="btn pri" id="dlKml">Descarregar .kml</button><button class="btn" id="dlGeo">Descarregar .geojson</button></div>
+      <label class="row small" style="margin-top:6px"><input type="checkbox" id="expCones" checked> incluir cones como pontos</label>
+      <details><summary>Importar no Google Earth (web)</summary>
+        <ol>
+          <li>Abre ou cria um projeto → no painel <b>Conteúdo do mapa</b> carrega em <b>+</b>.</li>
+          <li><b>Importar ficheiro</b> → <b>Do computador</b> → escolhe o <code>.kml</code>.</li>
+          <li>O KML mantém as cores (azul/amarelo/laranja); o GeoJSON pode aparecer com cores por defeito.</li>
+        </ol>
+      </details>
+    </div>
+    <div class="card">
+      <h3>Cones para marcar no terreno (CSV)</h3>
+      <p class="small mut" style="margin:0 0 6px">Coordenadas lat/lon e x/y locais (m) de cada cone, em ordem de volta. Para implantar com fita métrica a partir de 2 pontos de referência, ou com GNSS RTK se tiverem.</p>
+      <div class="row"><button class="btn" id="dlCsv">Descarregar CSV</button></div>
+    </div>
+    <div class="card">
+      <h3>Projeto</h3>
+      <p class="small mut" style="margin:0 0 6px">Fica guardado automaticamente neste browser; guarda também o .json para partilhar com a equipa.</p>
+      <div class="row">
+        <button class="btn" id="dlJson">Guardar projeto (.json)</button>
+        <span class="btn file">Abrir projeto<input type="file" id="jsonIn" accept=".json,application/json"></span>
+      </div>
+    </div>
+  </section>
+</aside>
+
+<main>
+  <div id="mapwrap">
+    <canvas id="map"></canvas>
+    <div class="ov" id="tools">
+      <button class="btn sm" id="fit">Enquadrar</button>
+      <button class="btn sm" id="placeStart">Colocar partida</button>
+    </div>
+    <div class="ov" id="stats"></div>
+    <div class="ov" id="modebar"></div>
+  </div>
+</main>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const G=9.81, DEG=Math.PI/180;
+const $=id=>document.getElementById(id);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const EXAMPLE_SEGS=[
+  {t:'SL',n:3,sp:10},{t:'A',R:12,ang:90,dir:'L'},{t:'S',L:20},{t:'A',R:12,ang:90,dir:'L'},
+  {t:'S',L:40},{t:'A',R:12,ang:90,dir:'L'},{t:'S',L:20},{t:'A',R:12,ang:90,dir:'L'}];
+const DEFAULT={
+  v:1,
+  origin:{lat:39.08634,lon:-8.96338},
+  areas:[], refLines:[], bg:null,
+  start:{x:0,y:0,hdg:90},
+  width:3.5, closed:true,
+  segs:clone(EXAMPLE_SEGS),
+  cone:{straight:5,arc:2.5},
+  rules:{hairpinOD:9,strHP:60,strWide:45,slMin:7.5,slMax:12,slA:1.0,minW:3,margin:1.5,clear:1.5}
+};
+const LSKEY='fs-track-designer-web-v1';
+function load(){try{const t=localStorage.getItem(LSKEY);if(!t)return null;const o=JSON.parse(t);return merge(clone(DEFAULT),o);}catch(e){return null}}
+function merge(a,b){for(const k in b){if(b[k]&&typeof b[k]==='object'&&!Array.isArray(b[k])&&a[k]&&typeof a[k]==='object')merge(a[k],b[k]);else a[k]=b[k];}return a}
+let saveT=0;
+function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(LSKEY,JSON.stringify(S))}catch(e){try{const c=clone(S);c.bg=null;localStorage.setItem(LSKEY,JSON.stringify(c))}catch(_){}}},300)}
+
+let S=load()||clone(DEFAULT);
+let selArea=-1;
+let view={cx:0,cy:0,sc:4}, mode='pan', sel=-1, hoverIdx=-1, R=null, bgImg=null, draft=[], geo={A:null,B:null};
+const undo=[];
+function snap(){undo.push(JSON.stringify(S));if(undo.length>80)undo.shift()}
+function doUndo(){if(!undo.length)return toast('Nada para desfazer');const bg=S.bg;S=JSON.parse(undo.pop());if(S.bg&&bg&&S.bg.src===undefined)S.bg.src=bg.src;loadBg();syncInputs();rebuildList();update()}
+
+/* ---------- geodesy (local tangent plane, ok for < few km) ---------- */
+function mPerDeg(lat){const p=lat*DEG;return{lat:111132.92-559.82*Math.cos(2*p)+1.175*Math.cos(4*p),lon:111412.84*Math.cos(p)-93.5*Math.cos(3*p)}}
+function ll2xy(lat,lon){const m=mPerDeg(S.origin.lat);return[(lon-S.origin.lon)*m.lon,(lat-S.origin.lat)*m.lat]}
+function xy2ll(x,y){const m=mPerDeg(S.origin.lat);return[S.origin.lat+y/m.lat,S.origin.lon+x/m.lon]}
+function parseLL(t){
+  if(!t)return null;t=t.trim();
+  const re=/(\d+(?:[.,]\d+)?)\s*°\s*(?:(\d+(?:[.,]\d+)?)\s*['’′]\s*)?(?:(\d+(?:[.,]\d+)?)\s*(?:["”″]|'')\s*)?([NSEWO])/gi;
+  const out=[];let m;
+  while((m=re.exec(t))){let v=+m[1].replace(',','.')+(m[2]?+m[2].replace(',','.')/60:0)+(m[3]?+m[3].replace(',','.')/3600:0);const h=m[4].toUpperCase();if(h==='S'||h==='W'||h==='O')v=-v;out.push({v,lat:h==='N'||h==='S'})}
+  if(out.length===2){const la=out.find(o=>o.lat),lo=out.find(o=>!o.lat);if(la&&lo)return{lat:la.v,lon:lo.v}}
+  const n=t.match(/-?\d+(?:\.\d+)?/g);
+  if(n&&n.length>=2){const a=+n[0],b=+n[1];if(Math.abs(a)<=90)return{lat:a,lon:b}}
+  return null;
+}
+function fmtLL(lat,lon){return lat.toFixed(6)+', '+lon.toFixed(6)}
+
+/* ---------- geometry ---------- */
+function segLen(g){if(g.t==='S')return Math.max(0.1,+g.L||0);if(g.t==='A')return Math.max(0.5,+g.R||0)*Math.max(0.5,Math.abs(+g.ang||0))*DEG;return((+g.n||1)+1)*Math.max(1,+g.sp||1)}
+function segK(g){return g.t==='A'?(g.dir==='L'?1:-1)/Math.max(0.5,+g.R):0}
+function posAt(x0,y0,th0,k,t){if(Math.abs(k)<1e-9)return[x0+t*Math.cos(th0),y0+t*Math.sin(th0),th0];const th=th0+k*t;return[x0+(Math.sin(th)-Math.sin(th0))/k,y0-(Math.cos(th)-Math.cos(th0))/k,th]}
+function halfW(g){return S.width/2+(g&&g.t==='SL'?Math.max(0,+S.rules.slA||0):0)}
+function build(){
+  const pts=[],info=[];let x=S.start.x,y=S.start.y,th=(90-S.start.hdg)*DEG,s=0;const ds=0.5;
+  S.segs.forEach((g,i)=>{
+    const L=segLen(g),k=segK(g),n=Math.max(2,Math.ceil(L/ds)),h=L/n,x0=x,y0=y,th0=th;
+    const A=+S.rules.slA||0,sp=+g.sp||10,nn=+g.n||1;
+    for(let j=(i===0?0:1);j<=n;j++){
+      const t=j*h,[px,py,pt]=posAt(x0,y0,th0,k,t);let kk=k;
+      if(g.t==='SL'){const u=t-sp;if(u>-sp/2&&u<(nn-1)*sp+sp/2)kk=A*(Math.PI/sp)**2*Math.cos(Math.PI*u/sp)}
+      pts.push({s:s+t,x:px,y:py,th:pt,k:kk,seg:i});
+    }
+    const e=posAt(x0,y0,th0,k,L);x=e[0];y=e[1];th=e[2];
+    info.push({s0:s,L,x0,y0,th0,k,x1:x,y1:y,th1:th});s+=L;
+  });
+  const th0=(90-S.start.hdg)*DEG;
+  let dh=((th-th0)/DEG)%360;if(dh>180)dh-=360;if(dh<=-180)dh+=360;
+  const left=pts.map(p=>{const h=halfW(S.segs[p.seg]);return[p.x-h*Math.sin(p.th),p.y+h*Math.cos(p.th)]});
+  const right=pts.map(p=>{const h=halfW(S.segs[p.seg]);return[p.x+h*Math.sin(p.th),p.y-h*Math.cos(p.th)]});
+  return{pts,info,left,right,len:s,end:{x,y,th},closure:{gap:Math.hypot(x-S.start.x,y-S.start.y),dx:S.start.x-x,dy:S.start.y-y,dh}};
+}
+function makeCones(B){
+  const C=[];
+  S.segs.forEach((g,i)=>{
+    const I=B.info[i],h=halfW(g);
+    [['L',h],['R',-h]].forEach(([side,d])=>{
+      const Le=Math.abs(I.L*(1-I.k*d));const sp=g.t==='A'?S.cone.arc:S.cone.straight;
+      const n=Math.max(1,Math.round(Le/Math.max(0.5,sp)));
+      for(let j=0;j<n;j++){const t=I.L*j/n,[px,py,pt]=posAt(I.x0,I.y0,I.th0,I.k,t);
+        C.push({x:px-d*Math.sin(pt),y:py+d*Math.cos(pt),c:(i===0&&j===0)?'O':(side==='L'?'B':'Y'),seg:i,s:I.s0+t,side});}
+    });
+    if(g.t==='SL'){for(let j=0;j<(+g.n||1);j++){const t=(+g.sp)*(j+1),[px,py]=posAt(I.x0,I.y0,I.th0,0,t);C.push({x:px,y:py,c:'S',seg:i,s:I.s0+t,side:'C'})}}
+  });
+  if(!S.closed&&S.segs.length){const i=S.segs.length-1,I=B.info[i],h=halfW(S.segs[i]);
+    [[h,'L'],[-h,'R']].forEach(([d,side])=>C.push({x:I.x1-d*Math.sin(I.th1),y:I.y1+d*Math.cos(I.th1),c:'O',seg:i,s:B.len,side}))}
+  C.sort((a,b)=>a.s-b.s||(a.side<b.side?-1:1));
+  return C;
+}
+function pip(x,y,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const[xi,yi]=poly[i],[xj,yj]=poly[j];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))c=!c}return c}
+function dSeg(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;let t=l?((px-ax)*dx+(py-ay)*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(px-ax-t*dx,py-ay-t*dy)}
+function distBoundary(x,y){let m=1e9;for(const p of S.areas)for(let i=0,j=p.length-1;i<p.length;j=i++)m=Math.min(m,dSeg(x,y,p[j][0],p[j][1],p[i][0],p[i][1]));return m}
+function checks(B){
+  const list=[],sm=S.segs.map(()=>[]),bad=[],r=S.rules,h=S.width/2;
+  const add=(i,lvl,t)=>{if(!sm[i].some(m=>m.t===t))sm[i].push({lvl,t})};
+  if(!S.segs.length){list.push({lvl:'info',t:'Sem elementos. Adiciona retas e curvas no separador Pista.'});return{list,sm,bad}}
+  if(S.width<r.minW)list.push({lvl:'warn',t:`Largura ${S.width} m abaixo do mínimo ${r.minW} m.`});
+  S.segs.forEach((g,i)=>{
+    if(g.t==='A'){const od=2*(+g.R+h);if(od<r.hairpinOD-1e-6)add(i,'err',`Ø exterior ${od.toFixed(1)} m < ${r.hairpinOD} m (hairpin mín.)`);if(+g.R<=h)add(i,'err','Raio menor que meia largura: bordo interior cruza-se.')}
+    if(g.t==='SL'&&(+g.sp<r.slMin||+g.sp>r.slMax))add(i,'warn',`Espaçamento ${g.sp} m fora de [${r.slMin}, ${r.slMax}] m`);
+  });
+  // straight runs
+  const isS=g=>g.t==='S'||g.t==='SL',runs=[];let cur=null;
+  S.segs.forEach((g,i)=>{if(isS(g)){if(!cur){cur={ids:[],L:0};runs.push(cur)}cur.ids.push(i);cur.L+=segLen(g)}else cur=null});
+  if(S.closed&&runs.length>1&&isS(S.segs[0])&&isS(S.segs[S.segs.length-1])){const a=runs.shift(),b=runs[runs.length-1];b.ids.push(...a.ids);b.L+=a.L}
+  runs.forEach(rn=>{if(rn.L>r.strHP+1e-6)rn.ids.forEach(i=>add(i,'err',`Reta contínua de ${rn.L.toFixed(0)} m > ${r.strHP} m`));else if(rn.L>r.strWide+1e-6)rn.ids.forEach(i=>add(i,'warn',`Reta de ${rn.L.toFixed(0)} m: só ok com hairpins nos dois topos (> ${r.strWide} m)`))});
+  if(S.closed&&(B.closure.gap>0.25||Math.abs(B.closure.dh)>0.5))list.push({lvl:'err',t:`Circuito não fecha: faltam ${B.closure.gap.toFixed(2)} m e ${B.closure.dh.toFixed(1)}°. Usa “Fechar circuito automaticamente”.`});
+  // area
+  if(S.areas.length){
+    let out=0,mar=0;const hit=new Set();
+    for(let k=0;k<B.pts.length;k+=2){for(const e of[B.left[k],B.right[k]]){const inside=S.areas.some(p=>pip(e[0],e[1],p));
+      if(!inside){out++;bad.push({x:e[0],y:e[1],k:'out'});hit.add(B.pts[k].seg+':o')}
+      else if(r.margin>0&&distBoundary(e[0],e[1])<r.margin){mar++;bad.push({x:e[0],y:e[1],k:'mar'});hit.add(B.pts[k].seg+':m')}}}
+    hit.forEach(z=>{const[i,t]=z.split(':');add(+i,t==='o'?'err':'warn',t==='o'?'Sai da área de asfalto':`A menos de ${r.margin} m do limite`)});
+    if(out)list.push({lvl:'err',t:`A pista sai da área em ${out} pontos (vermelho no mapa).`});
+    if(mar)list.push({lvl:'warn',t:`${mar} pontos dentro da margem de ${r.margin} m ao limite (laranja).`});
+    if(!out&&!mar)list.push({lvl:'ok',t:'Cabe na área com a margem definida.'});
+  }else list.push({lvl:'info',t:'Sem área definida — não é possível verificar se cabe no asfalto.'});
+  // self clearance (centreline)
+  const c=S.width+(+r.clear||0),cell=c,grid=new Map(),P=B.pts,L=B.len,step=2,idx=[];
+  for(let k=0;k<P.length;k+=step){idx.push(k);const key=Math.floor(P[k].x/cell)+','+Math.floor(P[k].y/cell);(grid.get(key)||grid.set(key,[]).get(key)).push(k)}
+  let ncl=0;const clSeg=new Set();
+  for(const k of idx){const p=P[k],gx=Math.floor(p.x/cell),gy=Math.floor(p.y/cell);
+    for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const arr=grid.get((gx+a)+','+(gy+b));if(!arr)continue;
+      for(const j of arr){if(j<=k)continue;let dsj=Math.abs(P[j].s-p.s);if(S.closed)dsj=Math.min(dsj,L-dsj);if(dsj<3*c)continue;
+        const hw=Math.max(halfW(S.segs[p.seg]),halfW(S.segs[P[j].seg]))*2+(+r.clear||0);
+        if(Math.hypot(P[j].x-p.x,P[j].y-p.y)<hw){ncl++;bad.push({x:p.x,y:p.y,k:'cl'});clSeg.add(p.seg);clSeg.add(P[j].seg)}}}}
+  clSeg.forEach(i=>add(i,'err','Demasiado perto de outro troço da pista'));
+  if(ncl)list.push({lvl:'err',t:'Há troços da pista a sobrepor-se ou a menos da separação mínima.'});
+  const nerr=sm.flat().filter(m=>m.lvl==='err').length,nw=sm.flat().filter(m=>m.lvl==='warn').length;
+  if(nerr||nw)list.push({lvl:nerr?'err':'warn',t:`${nerr} erro(s) e ${nw} aviso(s) nos elementos (ver lista).`});
+  return{list,sm,bad};
+}
+function update(){
+  const B=build(),C=makeCones(B),K=checks(B);
+  R={...B,cones:C,issues:K.list,sm:K.sm,bad:K.bad};
+  renderSide();draw();save();
+}
+
+/* ---------- side panel ---------- */
+const TYPES={S:'Reta',A:'Curva',SL:'Slalom'};
+function rebuildList(){
+  const el=$('segs');el.innerHTML='';
+  S.segs.forEach((g,i)=>{
+    const d=document.createElement('div');d.className='seg'+(i===sel?' sel':'');d.dataset.i=i;
+    let p='';
+    if(g.t==='S')p=`<span class="lab">L</span><input type="number" data-f="L" value="${g.L}" step="1" min="0.5"><span class="lab">m</span>`;
+    if(g.t==='A')p=`<span class="lab">R</span><input type="number" data-f="R" value="${g.R}" step="0.5" min="1"><span class="lab">m</span><input type="number" data-f="ang" value="${g.ang}" step="5" min="1" max="360"><span class="lab">°</span><select data-f="dir"><option value="L"${g.dir==='L'?' selected':''}>esq</option><option value="R"${g.dir==='R'?' selected':''}>dir</option></select>`;
+    if(g.t==='SL')p=`<input type="number" data-f="n" value="${g.n}" step="1" min="2" style="width:46px"><span class="lab">cones a</span><input type="number" data-f="sp" value="${g.sp}" step="0.5" min="3"><span class="lab">m</span>`;
+    d.innerHTML=`<div class="top"><span class="num">${i+1}</span><select data-f="t">${Object.entries(TYPES).map(([k,v])=>`<option value="${k}"${g.t===k?' selected':''}>${v}</option>`).join('')}</select>${p}
+      <span class="x"><button data-a="up" title="Subir">↑</button><button data-a="dn" title="Descer">↓</button><button data-a="dup" title="Duplicar">⧉</button><button data-a="del" title="Apagar">✕</button></span></div>
+      <div class="info"></div><div class="msgs"></div>`;
+    el.appendChild(d);
+  });
+  if(!S.segs.length)el.innerHTML='<div class="card mut small">Sem elementos. Usa os botões acima ou “Exemplo”.</div>';
+}
+function renderSide(){
+  const ms=v=>(v*3.6).toFixed(0);
+  document.querySelectorAll('#segs .seg').forEach(d=>{
+    const i=+d.dataset.i,g=S.segs[i],I=R.info[i];if(!g||!I)return;
+    let txt=`L ${I.L.toFixed(1)} m · s ${I.s0.toFixed(0)}→${(I.s0+I.L).toFixed(0)} m`;
+    if(g.t==='A'){const h=S.width/2;txt=`Ø ext ${(2*(+g.R+h)).toFixed(1)} · Ø int ${(2*(+g.R-h)).toFixed(1)} m · L ${I.L.toFixed(1)} m`}
+    d.querySelector('.info').textContent=txt;
+    d.querySelector('.msgs').innerHTML=(R.sm[i]||[]).map(m=>`<div class="msg ${m.lvl}">${m.lvl==='err'?'✖':'▲'} ${m.t}</div>`).join('');
+    d.classList.toggle('sel',i===sel);
+  });
+  $('issues').innerHTML=R.issues.map(m=>`<div class="${m.lvl}">${m.lvl==='ok'?'✔':m.lvl==='err'?'✖':m.lvl==='warn'?'▲':'ℹ'} ${m.t}</div>`).join('');
+  const cl=R.closure;
+  $('closeInfo').innerHTML=S.closed?(cl.gap<0.25&&Math.abs(cl.dh)<0.5?'<span class="ok">✔ Circuito fechado.</span>':`<span class="err">Fecho: Δ ${cl.gap.toFixed(2)} m, ${cl.dh.toFixed(1)}°</span>`):'<span class="mut">Pista aberta (autocross): partida parada no início.</span>';
+  const cnt={B:0,Y:0,O:0,S:0};R.cones.forEach(c=>cnt[c.c]++);
+  const arcs=S.segs.filter(g=>g.t==='A'),rmin=arcs.length?Math.min(...arcs.map(g=>+g.R)):null,err=R.issues.some(m=>m.lvl==='err');
+  const isS=g=>g.t==='S'||g.t==='SL';let mx=0,cur=0;const seq=S.closed?S.segs.concat(S.segs):S.segs;seq.forEach(g=>{if(isS(g)){cur+=segLen(g);mx=Math.max(mx,cur)}else cur=0});if(S.segs.length&&S.segs.every(isS))mx=S.segs.reduce((a,g)=>a+segLen(g),0);
+  $('stats').innerHTML=`
+    <div class="k"><span class="mut">Comprimento</span><b>${R.len.toFixed(1)} m</b></div>
+    <div class="k"><span class="mut">Elementos</span><b>${S.segs.length}</b></div>
+    <div class="k"><span class="mut">Raio mínimo (eixo)</span><b>${rmin!=null?rmin+' m':'—'}</b></div>
+    <div class="k"><span class="mut">Reta mais longa</span><b>${mx.toFixed(0)} m</b></div>
+    <hr><div class="k"><span class="mut">Cones</span><b>${R.cones.length}</b></div>
+    <div class="small"><span class="dot" style="background:var(--blue)"></span>${cnt.B} <span class="dot" style="background:var(--yel);margin-left:6px"></span>${cnt.Y} <span class="dot" style="background:var(--org);margin-left:6px"></span>${cnt.O} ${cnt.S?`<span class="dot" style="background:#fff;margin-left:6px"></span>${cnt.S}`:''}</div>
+    <div class="small ${err?'err':'ok'}" style="margin-top:4px">${err?'✖ Há erros (ver Pista)':'✔ Sem erros'}</div>`;
+  const n=S.areas.length;renderAreaList();$('areaInfo').textContent=n?`${n} polígono(s) · ${S.areas.reduce((a,p)=>a+Math.abs(polyArea(p)),0).toFixed(0)} m²`:'Sem área.';
+}
+function renderAreaList(){
+  const el=$('areaList');if(!el)return;
+  el.innerHTML=S.areas.map((a,i)=>`<div class="seg${i===selArea?' sel':''}" data-ai="${i}"><div class="top"><span class="num">${i+1}</span><span>Área ${i+1}</span><span class="lab">${a.length} vértices · ${Math.abs(polyArea(a)).toFixed(0)} m²</span>
+    <span class="x"><button data-aa="fit" title="Enquadrar">⌖</button><button data-aa="edit" title="Editar vértices">${mode==='editArea'&&i===selArea?'✔ Feito':'✎ Editar'}</button><button data-aa="del" title="Apagar este polígono">✕</button></span></div></div>`).join('');
+}
+function polyArea(p){let a=0;for(let i=0,j=p.length-1;i<p.length;j=i++)a+=(p[j][0]*p[i][1]-p[i][0]*p[j][1]);return a/2}
+function syncInputs(){
+  $('sx').value=+S.start.x.toFixed(2);$('sy').value=+S.start.y.toFixed(2);$('sh').value=+S.start.hdg.toFixed(1);
+  $('tw').value=S.width;$('closed').checked=S.closed;$('originTxt').value=fmtLL(S.origin.lat,S.origin.lon);
+  document.querySelectorAll('[data-k]').forEach(el=>{const[a,b]=el.dataset.k.split('.');el.value=S[a][b]});
+  if(S.bg)$('bgOp').value=S.bg.op;
+}
+
+/* ---------- segment list events ---------- */
+$('segs').addEventListener('focusin',e=>{if(e.target.matches('input,select'))snap()});
+$('segs').addEventListener('input',e=>{
+  const d=e.target.closest('.seg');if(!d)return;const i=+d.dataset.i,f=e.target.dataset.f;if(!f)return;
+  const g=S.segs[i];
+  if(f==='t'){const L=segLen(g);const nt=e.target.value;S.segs[i]=nt==='S'?{t:'S',L:+L.toFixed(1)}:nt==='A'?{t:'A',R:12,ang:90,dir:'L'}:{t:'SL',n:4,sp:10};rebuildList();update();return}
+  const v=e.target.type==='number'?parseFloat(e.target.value):e.target.value;if(e.target.type==='number'&&!isFinite(v))return;
+  g[f]=v;sel=i;update();
+});
+$('segs').addEventListener('click',e=>{
+  const d=e.target.closest('.seg');if(!d)return;const i=+d.dataset.i,a=e.target.dataset&&e.target.dataset.a;
+  if(a){snap();if(a==='del'){S.segs.splice(i,1);sel=Math.min(sel,S.segs.length-1)}
+    if(a==='up'&&i>0){[S.segs[i-1],S.segs[i]]=[S.segs[i],S.segs[i-1]];sel=i-1}
+    if(a==='dn'&&i<S.segs.length-1){[S.segs[i+1],S.segs[i]]=[S.segs[i],S.segs[i+1]];sel=i+1}
+    if(a==='dup'){S.segs.splice(i+1,0,clone(S.segs[i]));sel=i+1}
+    rebuildList();update();return}
+  if(sel!==i){sel=i;renderSide();draw()}
+});
+document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
+  snap();const t=b.dataset.add,minR=Math.max(1,S.rules.hairpinOD/2-S.width/2);
+  const items={S:[{t:'S',L:20}],AL:[{t:'A',R:15,ang:90,dir:'L'}],AR:[{t:'A',R:15,ang:90,dir:'R'}],
+    HL:[{t:'A',R:+(Math.ceil(minR*2)/2).toFixed(1),ang:180,dir:'L'}],HR:[{t:'A',R:+(Math.ceil(minR*2)/2).toFixed(1),ang:180,dir:'R'}],
+    SL:[{t:'SL',n:4,sp:Math.min(S.rules.slMax,Math.max(S.rules.slMin,10))}],
+    CH:[{t:'A',R:10,ang:35,dir:'L'},{t:'A',R:10,ang:70,dir:'R'},{t:'A',R:10,ang:35,dir:'L'}]}[t];
+  const at=sel>=0?sel+1:S.segs.length;S.segs.splice(at,0,...clone(items));sel=at+items.length-1;rebuildList();update();
+  const el=document.querySelector(`#segs .seg[data-i="${sel}"]`);el&&el.scrollIntoView({block:'nearest'});
+});
+$('autoClose').onclick=autoClose;
+$('tplBtn').onclick=()=>{snap();S.segs=clone(EXAMPLE_SEGS);S.closed=true;sel=-1;syncInputs();rebuildList();update();fit()};
+$('clrTrack').onclick=()=>{snap();S.segs=[];sel=-1;rebuildList();update()};
+$('undoBtn').onclick=doUndo;
+function autoClose(){
+  if(!S.closed){S.closed=true;$('closed').checked=true}
+  snap();let B=build();const dh=B.closure.dh;
+  if(Math.abs(dh)>0.05){
+    let done=false;for(let i=S.segs.length-1;i>=0&&!done;i--){const g=S.segs[i];if(g.t!=='A')continue;const sg=g.dir==='L'?1:-1,na=+g.ang-sg*dh;if(na>=1&&na<=359){g.ang=+na.toFixed(3);done=true}}
+    if(!done){S=JSON.parse(undo.pop());return toast('Não consegui acertar o rumo: ajusta o ângulo de uma curva (a soma deve dar ±360°).')}
+    B=build();
+  }
+  const ex=B.closure.dx,ey=B.closure.dy;
+  if(Math.hypot(ex,ey)>0.01){
+    const st=[];S.segs.forEach((g,i)=>{if(g.t==='S')st.push(i)});
+    let ok=false;
+    for(let a=st.length-1;a>=0&&!ok;a--)for(let b=a-1;b>=0&&!ok;b--){
+      const i=st[a],j=st[b],ui=[Math.cos(B.info[i].th0),Math.sin(B.info[i].th0)],uj=[Math.cos(B.info[j].th0),Math.sin(B.info[j].th0)];
+      const det=ui[0]*uj[1]-ui[1]*uj[0];if(Math.abs(det)<0.3)continue;
+      const da=(ex*uj[1]-ey*uj[0])/det,db=(ui[0]*ey-ui[1]*ex)/det;
+      const Li=+S.segs[i].L+da,Lj=+S.segs[j].L+db;if(Li<0.5||Lj<0.5)continue;
+      S.segs[i].L=+Li.toFixed(3);S.segs[j].L=+Lj.toFixed(3);ok=true;toast(`Fechado: ajustei as retas ${i+1} e ${j+1}${Math.abs(dh)>0.05?' e o ângulo de uma curva':''}.`);
+    }
+    if(!ok){S=JSON.parse(undo.pop());return toast('Não consegui fechar: preciso de 2 retas em direções diferentes que possam crescer/encolher. Adiciona uma reta e tenta outra vez.')}
+  }else toast('Circuito já está fechado.');
+  rebuildList();update();
+}
+['sx','sy','sh'].forEach(id=>{$(id).addEventListener('focus',snap);$(id).addEventListener('input',()=>{const v=parseFloat($(id).value);if(!isFinite(v))return;S.start[{sx:'x',sy:'y',sh:'hdg'}[id]]=v;update()})});
+$('tw').addEventListener('focus',snap);$('tw').addEventListener('input',()=>{const v=parseFloat($('tw').value);if(v>0){S.width=v;update()}});
+$('closed').onchange=()=>{snap();S.closed=$('closed').checked;update()};
+document.querySelectorAll('[data-k]').forEach(el=>{el.addEventListener('focus',snap);el.addEventListener('input',()=>{const v=parseFloat(el.value);if(!isFinite(v))return;const[a,b]=el.dataset.k.split('.');S[a][b]=v;update()})});
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+b.dataset.tab))});
+
+/* ---------- area: KML / image / drawing ---------- */
+async function unzipKml(buf){
+  const dv=new DataView(buf),u8=new Uint8Array(buf);let e=-1;
+  for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-66000);i--)if(dv.getUint32(i,true)===0x06054b50){e=i;break}
+  if(e<0)throw new Error('KMZ inválido');
+  const nEnt=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);
+  for(let k=0;k<nEnt;k++){
+    const method=dv.getUint16(p+10,true),cs=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
+    const name=new TextDecoder().decode(u8.subarray(p+46,p+46+nl));
+    if(/\.kml$/i.test(name)){const ln=dv.getUint16(lo+26,true),lx=dv.getUint16(lo+28,true),data=u8.slice(lo+30+ln+lx,lo+30+ln+lx+cs);
+      if(method===0)return new TextDecoder().decode(data);
+      const out=await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();return new TextDecoder().decode(out)}
+    p+=46+nl+xl+cl;
+  }
+  throw new Error('Sem .kml dentro do KMZ');
+}
+function parseCoords(t){return t.trim().split(/\s+/).map(c=>c.split(',').map(Number)).filter(a=>a.length>=2&&isFinite(a[0])&&isFinite(a[1]))}
+$('kmlIn').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;e.target.value='';
+  try{
+    const buf=await f.arrayBuffer();const head=new Uint8Array(buf,0,2);
+    const txt=(head[0]===0x50&&head[1]===0x4b)?await unzipKml(buf):new TextDecoder().decode(buf);
+    const doc=new DOMParser().parseFromString(txt,'application/xml');
+    const get=(el,tag)=>Array.from(el.getElementsByTagNameNS('*',tag));
+    const polys=get(doc,'Polygon').map(pg=>{const ob=get(pg,'outerBoundaryIs')[0]||pg;const c=get(ob,'coordinates')[0];return c?parseCoords(c.textContent):[]}).filter(p=>p.length>=3);
+    const lines=get(doc,'LineString').map(ls=>{const c=get(ls,'coordinates')[0];return c?parseCoords(c.textContent):[]}).filter(p=>p.length>=2);
+    if(!polys.length&&!lines.length)return toast('Não encontrei polígonos nem linhas neste ficheiro.');
+    snap();
+    const all=polys.concat(lines).flat();
+    if(!S.areas.length&&!(S.bg&&S.bg.geo)){const la=all.reduce((a,c)=>a+c[1],0)/all.length,lo=all.reduce((a,c)=>a+c[0],0)/all.length;S.origin={lat:la,lon:lo};S.start.x=0;S.start.y=0}
+    polys.forEach(p=>{const q=p.map(c=>ll2xy(c[1],c[0]));if(q.length>3&&Math.hypot(q[0][0]-q[q.length-1][0],q[0][1]-q[q.length-1][1])<0.01)q.pop();S.areas.push(q)});
+    lines.forEach(l=>S.refLines.push(l.map(c=>ll2xy(c[1],c[0]))));
+    syncInputs();update();fit();toast(`Importado: ${polys.length} polígono(s)${lines.length?`, ${lines.length} linha(s) de referência`:''}. Agora vai a “2 · Pista”.`);
+  }catch(err){toast('Erro a ler o ficheiro: '+err.message)}
+};
+$('imgIn').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;e.target.value='';const rd=new FileReader();
+  rd.onload=()=>{const im=new Image();im.onload=()=>{snap();const s=300/im.width;
+    S.bg={src:rd.result,iw:im.width,ih:im.height,s,phi:0,tx:view.cx-s*im.width/2,ty:view.cy+s*im.height/2,op:+$('bgOp').value,geo:false};bgImg=im;geo={A:null,B:null};
+    $('gState').textContent='Imagem carregada (escala provisória). Georreferencia-a.';update();fit()};im.src=rd.result};
+  rd.readAsDataURL(f);
+};
+function loadBg(){if(!S.bg||!S.bg.src){bgImg=null;return}const im=new Image();im.onload=()=>{bgImg=im;draw()};im.src=S.bg.src}
+$('bgDel').onclick=()=>{snap();S.bg=null;bgImg=null;update()};
+$('bgOp').oninput=()=>{if(S.bg){S.bg.op=+$('bgOp').value;draw();save()}};
+function img2w(u,v){const b=S.bg,c=Math.cos(b.phi),s=Math.sin(b.phi);return[b.tx+b.s*(c*u+s*v),b.ty+b.s*(s*u-c*v)]}
+function w2img(x,y){const b=S.bg,c=Math.cos(b.phi),s=Math.sin(b.phi),dx=x-b.tx,dy=y-b.ty;return[(c*dx+s*dy)/b.s,(s*dx-c*dy)/b.s]}
+$('gA').onclick=()=>{if(!S.bg)return toast('Carrega primeiro uma imagem.');setMode('geoA')};
+$('gB').onclick=()=>{if(!S.bg)return toast('Carrega primeiro uma imagem.');setMode('geoB')};
+function geoState(){$('gState').textContent=`A ${geo.A?'✔':'—'} · B ${geo.B?'✔':'—'}`}
+$('gApplyLL').onclick=()=>{
+  if(!S.bg||!geo.A||!geo.B)return toast('Marca os pontos A e B na imagem primeiro.');
+  const a=parseLL($('llA').value),b=parseLL($('llB').value);if(!a||!b)return toast('Não percebi as coordenadas. Ex.: 39°05\'10.81"N 8°57\'48.18"W');
+  snap();
+  if(!S.areas.length){const[ox,oy]=ll2xy(a.lat,a.lon);if(Math.hypot(ox,oy)>2000){S.origin={lat:a.lat,lon:a.lon}}}
+  const Aw=ll2xy(a.lat,a.lon),Bw=ll2xy(b.lat,b.lon),qa=[geo.A[0],-geo.A[1]],qb=[geo.B[0],-geo.B[1]];
+  const dw=Math.hypot(Bw[0]-Aw[0],Bw[1]-Aw[1]),di=Math.hypot(qb[0]-qa[0],qb[1]-qa[1]);if(di<5||dw<1)return toast('Pontos demasiado próximos.');
+  const s=dw/di,phi=Math.atan2(Bw[1]-Aw[1],Bw[0]-Aw[0])-Math.atan2(qb[1]-qa[1],qb[0]-qa[0]),c=Math.cos(phi),sn=Math.sin(phi);
+  Object.assign(S.bg,{s,phi,tx:Aw[0]-s*(c*qa[0]-sn*qa[1]),ty:Aw[1]-s*(sn*qa[0]+c*qa[1]),geo:true});
+  syncInputs();update();fit();toast(`Georreferenciada: ${(s*100).toFixed(1)} cm/px, rotação ${(phi/DEG).toFixed(1)}°. Desenha agora a área (C).`);
+};
+$('gApplyD').onclick=()=>{
+  if(!S.bg||!geo.A||!geo.B)return toast('Marca os pontos A e B na imagem primeiro.');const D=parseFloat($('gDist').value);if(!(D>0))return toast('Indica a distância em metros.');
+  snap();const Aw=img2w(geo.A[0],geo.A[1]),di=Math.hypot(geo.B[0]-geo.A[0],geo.B[1]-geo.A[1]);const s=D/di;
+  Object.assign(S.bg,{s,phi:0});S.bg.tx=Aw[0]-s*geo.A[0];S.bg.ty=Aw[1]+s*geo.A[1];
+  update();fit();toast(`Escala aplicada: ${(s*100).toFixed(1)} cm/px. (Sem lat/lon, o KML fica na posição da origem.)`);
+};
+$('drawArea').onclick=()=>{if(mode==='area')finishArea();else{draft=[];setMode('area')}};
+$('clrArea').onclick=()=>{snap();S.areas=[];S.refLines=[];selArea=-1;if(mode==='editArea')setMode('pan');update()};
+$('areaList').addEventListener('click',e=>{
+  const d=e.target.closest('[data-ai]');if(!d)return;const i=+d.dataset.ai,a=e.target.dataset.aa;
+  if(a==='del'){snap();S.areas.splice(i,1);selArea=-1;if(mode==='editArea')setMode('pan');update();toast(`Área ${i+1} apagada (Ctrl+Z para desfazer).`);return}
+  selArea=i;
+  if(a==='edit'){setMode(mode==='editArea'?'pan':'editArea');}
+  if(a==='fit'){const p=S.areas[i];let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;p.forEach(([x,y])=>{x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)});view.cx=(x0+x1)/2;view.cy=(y0+y1)/2;view.sc=Math.min((W-60)/Math.max(10,x1-x0),(H-60)/Math.max(10,y1-y0))}
+  renderAreaList();draw();
+});
+function finishArea(){if(draft.length>=3){snap();S.areas.push(draft.slice());toast('Área adicionada.')}draft=[];setMode('pan');update()}
+$('originSet').onclick=()=>{const o=parseLL($('originTxt').value);if(!o)return toast('Coordenadas inválidas.');snap();
+  // keep everything at the same lat/lon: shift local coords
+  const[dx,dy]=ll2xy(o.lat,o.lon);const sh=p=>[p[0]-dx,p[1]-dy];
+  S.areas=S.areas.map(a=>a.map(sh));S.refLines=S.refLines.map(a=>a.map(sh));S.start.x-=dx;S.start.y-=dy;if(S.bg){S.bg.tx-=dx;S.bg.ty-=dy}
+  S.origin=o;syncInputs();update();fit()};
+
+/* ---------- canvas ---------- */
+const cv=$('map'),ctx=cv.getContext('2d');let W=0,H=0,dpr=1;
+function resize(){dpr=window.devicePixelRatio||1;const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;draw()}
+const tS=(x,y)=>[W/2+(x-view.cx)*view.sc,H/2-(y-view.cy)*view.sc];
+const tW=(X,Y)=>[(X-W/2)/view.sc+view.cx,-(Y-H/2)/view.sc+view.cy];
+function vcol(v,vmin,vmax){const t=Math.max(0,Math.min(1,(v-vmin)/Math.max(1e-6,vmax-vmin)));const st=[[59,130,246],[34,197,94],[250,204,21],[239,68,68]];const f=t*3,i=Math.min(2,Math.floor(f)),u=f-i;const c=st[i].map((a,k)=>Math.round(a+(st[i+1][k]-a)*u));return`rgb(${c})`}
+function fit(){
+  const P=[];S.areas.forEach(a=>P.push(...a));if(R)P.push(...R.left,...R.right);S.refLines.forEach(a=>P.push(...a));
+  if(S.bg&&!S.areas.length){P.push(img2w(0,0),img2w(S.bg.iw,S.bg.ih),img2w(S.bg.iw,0),img2w(0,S.bg.ih))}
+  if(!P.length)return;let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;P.forEach(([x,y])=>{x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)});
+  view.cx=(x0+x1)/2;view.cy=(y0+y1)/2;view.sc=Math.min((W-60)/Math.max(10,x1-x0),(H-60)/Math.max(10,y1-y0));draw()}
+function draw(){
+  if(!W)return;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);ctx.fillStyle='#0b0d10';ctx.fillRect(0,0,W,H);
+  // bg image
+  if(S.bg&&bgImg){const b=S.bg,c=Math.cos(b.phi),s=Math.sin(b.phi),k=view.sc*b.s;
+    ctx.save();ctx.globalAlpha=b.op;ctx.setTransform(dpr*k*c,dpr*-k*s,dpr*k*s,dpr*k*c,dpr*(W/2+(b.tx-view.cx)*view.sc),dpr*(H/2-(b.ty-view.cy)*view.sc));ctx.drawImage(bgImg,0,0);ctx.restore();ctx.setTransform(dpr,0,0,dpr,0,0)}
+  // grid
+  const gs=view.sc>6?5:view.sc>2?10:view.sc>0.6?50:100;const[a0,b1]=tW(0,0),[a1,b0]=tW(W,H);
+  ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;ctx.beginPath();
+  for(let x=Math.floor(a0/gs)*gs;x<=a1;x+=gs){const[X]=tS(x,0);ctx.moveTo(X,0);ctx.lineTo(X,H)}
+  for(let y=Math.floor(b0/gs)*gs;y<=b1;y+=gs){const[,Y]=tS(0,y);ctx.moveTo(0,Y);ctx.lineTo(W,Y)}ctx.stroke();
+  // areas
+  S.areas.forEach((p,ai)=>{const on=ai===selArea;ctx.beginPath();p.forEach((q,i)=>{const[X,Y]=tS(q[0],q[1]);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.closePath();ctx.fillStyle=on?'rgba(34,197,94,0.14)':'rgba(245,179,1,0.10)';ctx.fill();ctx.strokeStyle=on?'#22c55e':'#f5b301';ctx.lineWidth=on?3:2;ctx.stroke();
+    if(S.areas.length>1){let cx=0,cy=0;p.forEach(q=>{cx+=q[0];cy+=q[1]});const[X,Y]=tS(cx/p.length,cy/p.length);ctx.fillStyle=on?'#22c55e':'#f5b301';ctx.font='700 13px Inter';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Área '+(ai+1),X,Y)}});
+  S.refLines.forEach(p=>{ctx.beginPath();p.forEach((q,i)=>{const[X,Y]=tS(q[0],q[1]);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.setLineDash([6,4]);ctx.strokeStyle='#c084fc';ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([])});
+  drawAreaHandles=()=>{if(mode!=='editArea'||!S.areas[selArea])return;const p=S.areas[selArea];p.forEach((q,i)=>{const n=p[(i+1)%p.length],[X,Y]=tS(q[0],q[1]),[MX,MY]=tS((q[0]+n[0])/2,(q[1]+n[1])/2);ctx.fillStyle='#22c55e';ctx.strokeStyle='#000';ctx.lineWidth=1;ctx.fillRect(X-5,Y-5,10,10);ctx.strokeRect(X-5,Y-5,10,10);ctx.beginPath();ctx.moveTo(MX,MY-5);ctx.lineTo(MX+5,MY);ctx.lineTo(MX,MY+5);ctx.lineTo(MX-5,MY);ctx.closePath();ctx.fillStyle='rgba(34,197,94,0.5)';ctx.fill();ctx.stroke()})};
+  if(!R){drawAreaHandles();return}const P=R.pts;
+  // surface
+  if(P.length>1){ctx.lineCap='round';ctx.lineJoin='round';
+    // per segment surface width
+    for(let i=0;i<S.segs.length;i++){const hw=halfW(S.segs[i])*2;ctx.beginPath();let f=true;for(const p of P){if(p.seg!==i)continue;const[X,Y]=tS(p.x,p.y);f?ctx.moveTo(X,Y):ctx.lineTo(X,Y);f=false}
+      ctx.strokeStyle=i===sel?'rgba(245,179,1,0.35)':'rgba(170,176,190,0.28)';ctx.lineWidth=Math.max(2,hw*view.sc);ctx.stroke()}
+    // edges
+    const edge=(E,col)=>{ctx.beginPath();E.forEach((q,i)=>{const[X,Y]=tS(q[0],q[1]);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.strokeStyle=col;ctx.lineWidth=1;ctx.stroke()};
+    edge(R.left,'rgba(59,130,246,0.7)');edge(R.right,'rgba(250,204,21,0.7)');
+    // centreline coloured by speed
+    ctx.beginPath();P.forEach((p,i)=>{const[X,Y]=tS(p.x,p.y);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.setLineDash([6,5]);ctx.strokeStyle='rgba(255,255,255,0.75)';ctx.lineWidth=1.3;ctx.stroke();ctx.setLineDash([]);
+  }
+  // cones
+  const cr=Math.max(1.8,0.2*view.sc);
+  R.cones.forEach(c=>{const[X,Y]=tS(c.x,c.y);ctx.beginPath();ctx.arc(X,Y,c.c==='O'?cr*1.4:cr,0,7);ctx.fillStyle={B:'#3b82f6',Y:'#facc15',O:'#f97316',S:'#ffffff'}[c.c];ctx.fill();if(cr>3){ctx.strokeStyle='#000';ctx.lineWidth=0.7;ctx.stroke()}});
+  // problems
+  R.bad.forEach(b=>{const[X,Y]=tS(b.x,b.y);ctx.beginPath();ctx.arc(X,Y,3,0,7);ctx.fillStyle=b.k==='mar'?'rgba(249,115,22,0.9)':'rgba(239,68,68,0.95)';ctx.fill()});
+  // seg labels
+  if(view.sc>1.2)R.info.forEach((I,i)=>{const g=S.segs[i],[mx,my,mt]=posAt(I.x0,I.y0,I.th0,I.k,I.L/2),d=halfW(g)+Math.max(2.5,14/view.sc),[X,Y]=tS(mx-d*Math.sin(mt),my+d*Math.cos(mt));
+    ctx.beginPath();ctx.arc(X,Y,9,0,7);ctx.fillStyle=i===sel?'#f5b301':'rgba(20,23,30,0.9)';ctx.fill();ctx.strokeStyle=(R.sm[i]||[]).some(m=>m.lvl==='err')?'#ef4444':'#5b6475';ctx.lineWidth=1.2;ctx.stroke();
+    ctx.fillStyle=i===sel?'#000':'#e7e9ee';ctx.font='600 10px Inter';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(i+1,X,Y)});
+  // start handle
+  const[SX,SY]=tS(S.start.x,S.start.y),th=(90-S.start.hdg)*DEG,[HX,HY]=[SX+44*Math.cos(th),SY-44*Math.sin(th)];
+  ctx.strokeStyle='#f97316';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(SX,SY);ctx.lineTo(HX,HY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(HX+9*Math.cos(th),HY-9*Math.sin(th));ctx.lineTo(HX+7*Math.cos(th+2.3),HY-7*Math.sin(th+2.3));ctx.lineTo(HX+7*Math.cos(th-2.3),HY-7*Math.sin(th-2.3));ctx.closePath();ctx.fillStyle='#f97316';ctx.fill();
+  ctx.beginPath();ctx.arc(SX,SY,7,0,7);ctx.fillStyle='#f97316';ctx.fill();ctx.strokeStyle='#000';ctx.lineWidth=1.5;ctx.stroke();
+  // hover marker
+  if(hoverIdx>=0&&P[hoverIdx]){const[X,Y]=tS(P[hoverIdx].x,P[hoverIdx].y);ctx.beginPath();ctx.arc(X,Y,6,0,7);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke()}
+  drawAreaHandles();
+  // draft polygon
+  if(mode==='area'&&draft.length){ctx.beginPath();draft.forEach((q,i)=>{const[X,Y]=tS(q[0],q[1]);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});if(mouseW){const[X,Y]=tS(mouseW[0],mouseW[1]);ctx.lineTo(X,Y)}ctx.strokeStyle='#f5b301';ctx.setLineDash([5,4]);ctx.lineWidth=2;ctx.stroke();ctx.setLineDash([]);draft.forEach(q=>{const[X,Y]=tS(q[0],q[1]);ctx.fillStyle='#f5b301';ctx.fillRect(X-3,Y-3,6,6)})}
+  // geo points
+  if(S.bg)['A','B'].forEach(k=>{if(!geo[k])return;const[x,y]=img2w(geo[k][0],geo[k][1]),[X,Y]=tS(x,y);ctx.strokeStyle='#22c55e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X-8,Y);ctx.lineTo(X+8,Y);ctx.moveTo(X,Y-8);ctx.lineTo(X,Y+8);ctx.stroke();ctx.fillStyle='#22c55e';ctx.font='600 12px Inter';ctx.fillText(k,X+10,Y-8)});
+  // scale bar + north
+  const sbm=[1,2,5,10,20,50,100,200,500].find(m=>m*view.sc>80)||1000,len=sbm*view.sc;
+  ctx.fillStyle='rgba(18,21,27,.85)';ctx.fillRect(10,H-38,len+20,28);ctx.strokeStyle='#e7e9ee';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(20,H-16);ctx.lineTo(20+len,H-16);ctx.moveTo(20,H-20);ctx.lineTo(20,H-12);ctx.moveTo(20+len,H-20);ctx.lineTo(20+len,H-12);ctx.stroke();
+  ctx.fillStyle='#e7e9ee';ctx.font='11px Inter';ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText(sbm+' m',20+len/2,H-22);
+  ctx.beginPath();ctx.moveTo(W-24,58+150);ctx.lineTo(W-30,74+150);ctx.lineTo(W-18,74+150);ctx.closePath();ctx.fill();ctx.fillText('N',W-24,90+150);
+}
+/* ---------- interaction ---------- */
+let drag=null,mouseW=null,drawAreaHandles=()=>{};
+function setMode(m){mode=m;const mb=$('modebar');const t={area:'A desenhar área: clica nos cantos · Enter fecha · Backspace apaga · Esc cancela',geoA:'Clica no ponto A da imagem (um canto bem visível)',geoB:'Clica no ponto B da imagem (longe do A)',start:'Clica onde queres a partida',editArea:'A editar a área: arrasta vértices · arrasta ◇ para criar vértice · Alt+clique / clique-direito apaga vértice · Esc termina'}[m];
+  mb.style.display=t?'block':'none';mb.textContent=t||'';$('drawArea').classList.toggle('on',m==='area');$('drawArea').textContent=m==='area'?'Concluir polígono':'Desenhar polígono';$('placeStart').classList.toggle('on',m==='start');cv.style.cursor=m==='pan'?'grab':'crosshair';renderAreaList();draw()}
+function nearestPt(X,Y,maxPx){if(!R)return-1;let b=-1,bd=maxPx*maxPx;R.pts.forEach((p,i)=>{const[x,y]=tS(p.x,p.y),d=(x-X)**2+(y-Y)**2;if(d<bd){bd=d;b=i}});return b}
+cv.addEventListener('pointerdown',e=>{
+  const r=cv.getBoundingClientRect(),X=e.clientX-r.left,Y=e.clientY-r.top,[wx,wy]=tW(X,Y);cv.setPointerCapture(e.pointerId);
+  if(mode==='area'){draft.push([wx,wy]);draw();return}
+  if(mode==='editArea'&&S.areas[selArea]){const p=S.areas[selArea];
+    for(let i=0;i<p.length;i++){const[VX,VY]=tS(p[i][0],p[i][1]);if(Math.hypot(X-VX,Y-VY)<9){snap();
+      if(e.altKey||e.button===2){if(p.length>3){p.splice(i,1);update()}else toast('Um polígono precisa de pelo menos 3 vértices.');return}
+      drag={k:'vtx',i};return}}
+    for(let i=0;i<p.length;i++){const n=p[(i+1)%p.length],[MX,MY]=tS((p[i][0]+n[0])/2,(p[i][1]+n[1])/2);if(Math.hypot(X-MX,Y-MY)<8){snap();p.splice(i+1,0,[wx,wy]);drag={k:'vtx',i:i+1};update();return}}
+  }
+  if(mode==='geoA'||mode==='geoB'){const k=mode==='geoA'?'A':'B';geo[k]=w2img(wx,wy);geoState();setMode('pan');return}
+  if(mode==='start'){snap();S.start.x=+wx.toFixed(2);S.start.y=+wy.toFixed(2);syncInputs();setMode('pan');update();return}
+  const[SX,SY]=tS(S.start.x,S.start.y),th=(90-S.start.hdg)*DEG,HX=SX+44*Math.cos(th),HY=SY-44*Math.sin(th);
+  if(Math.hypot(X-HX,Y-HY)<12){snap();drag={k:'rot'};return}
+  if(Math.hypot(X-SX,Y-SY)<11){snap();drag={k:'mov',ox:wx-S.start.x,oy:wy-S.start.y};return}
+  drag={k:'pan',X,Y,cx:view.cx,cy:view.cy,moved:false};cv.style.cursor='grabbing';
+});
+cv.addEventListener('pointermove',e=>{
+  const r=cv.getBoundingClientRect(),X=e.clientX-r.left,Y=e.clientY-r.top,[wx,wy]=tW(X,Y);mouseW=[wx,wy];
+  if(drag){
+    if(drag.k==='pan'){view.cx=drag.cx-(X-drag.X)/view.sc;view.cy=drag.cy+(Y-drag.Y)/view.sc;if(Math.hypot(X-drag.X,Y-drag.Y)>3)drag.moved=true;draw();return}
+    if(drag.k==='vtx'){S.areas[selArea][drag.i]=[wx,wy];update();return}
+    if(drag.k==='mov'){S.start.x=+(wx-drag.ox).toFixed(2);S.start.y=+(wy-drag.oy).toFixed(2)}
+    if(drag.k==='rot'){let hd=90-Math.atan2(wy-S.start.y,wx-S.start.x)/DEG;hd=((hd%360)+360)%360;S.start.hdg=e.shiftKey?+hd.toFixed(1):Math.round(hd)}
+    syncInputs();update();return}
+  if(mode==='area'){draw();return}
+  const k=nearestPt(X,Y,14);if(k!==hoverIdx){hoverIdx=k;draw()}
+});
+cv.addEventListener('pointerup',e=>{
+  if(drag&&drag.k==='pan'&&!drag.moved){const r=cv.getBoundingClientRect(),k=nearestPt(e.clientX-r.left,e.clientY-r.top,12);sel=k>=0?R.pts[k].seg:-1;
+    if(k<0&&mode==='pan'){const[wx,wy]=tW(e.clientX-r.left,e.clientY-r.top);const ai=S.areas.findIndex(p=>pip(wx,wy,p));if(ai!==selArea){selArea=ai;renderAreaList()}}
+    if(sel>=0){document.querySelector('nav button[data-tab=track]').click();const el=document.querySelector(`#segs .seg[data-i="${sel}"]`);el&&el.scrollIntoView({block:'nearest'})}
+    renderSide();draw()}
+  drag=null;cv.style.cursor=mode==='pan'?'grab':'crosshair';
+});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('dblclick',()=>{if(mode==='area')finishArea()});
+cv.addEventListener('wheel',e=>{e.preventDefault();const r=cv.getBoundingClientRect(),X=e.clientX-r.left,Y=e.clientY-r.top,[wx,wy]=tW(X,Y);const f=Math.exp(-e.deltaY*0.0015);view.sc=Math.max(0.05,Math.min(200,view.sc*f));view.cx=wx-(X-W/2)/view.sc;view.cy=wy+(Y-H/2)/view.sc;draw()},{passive:false});
+cv.addEventListener('pointerleave',()=>{if(hoverIdx>=0){hoverIdx=-1;draw()}});
+window.addEventListener('keydown',e=>{
+  const typing=/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName);
+  if(mode==='area'){if(e.key==='Enter'){finishArea();e.preventDefault()}else if(e.key==='Backspace'&&!typing){draft.pop();draw();e.preventDefault()}else if(e.key==='Escape'){draft=[];setMode('pan')}return}
+  if(e.key==='Escape'&&mode!=='pan')setMode('pan');
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!typing){doUndo();e.preventDefault()}
+  if((e.key==='Delete')&&!typing&&sel>=0){snap();S.segs.splice(sel,1);sel=Math.min(sel,S.segs.length-1);rebuildList();update()}
+});
+$('fit').onclick=fit;$('placeStart').onclick=()=>setMode(mode==='start'?'pan':'start');
+window.addEventListener('resize',resize);
+
+/* ---------- export ---------- */
+function kmlColor(hex,a){const h=hex.replace('#','');return a+h.slice(4,6)+h.slice(2,4)+h.slice(0,2)}
+const coordStr=arr=>arr.map(([x,y])=>{const[la,lo]=xy2ll(x,y);return lo.toFixed(8)+','+la.toFixed(8)+',0'}).join(' ');
+function buildKml(){
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const st=(id,line,lw,poly)=>`<Style id="${id}"><LineStyle><color>${line}</color><width>${lw}</width></LineStyle><PolyStyle><color>${poly||'00000000'}</color></PolyStyle></Style>`;
+  const icon=(id,col)=>`<Style id="${id}"><IconStyle><color>${col}</color><scale>0.5</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png</href></Icon></IconStyle><LabelStyle><scale>0</scale></LabelStyle></Style>`;
+  const ls=(name,sty,arr,close)=>`<Placemark><name>${esc(name)}</name><styleUrl>#${sty}</styleUrl><LineString><tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode><coordinates>${coordStr(close?arr.concat([arr[0]]):arr)}</coordinates></LineString></Placemark>`;
+  const pg=(name,sty,outer,inner)=>`<Placemark><name>${esc(name)}</name><styleUrl>#${sty}</styleUrl><Polygon><tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode><outerBoundaryIs><LinearRing><coordinates>${coordStr(outer.concat([outer[0]]))}</coordinates></LinearRing></outerBoundaryIs>${inner?`<innerBoundaryIs><LinearRing><coordinates>${coordStr(inner.concat([inner[0]]))}</coordinates></LinearRing></innerBoundaryIs>`:''}</Polygon></Placemark>`;
+  let surf;
+  if(S.closed&&R.closure.gap<0.5){const aL=Math.abs(polyArea(R.left)),aR=Math.abs(polyArea(R.right));surf=aL>aR?pg('Superfície da pista','surf',R.left,R.right):pg('Superfície da pista','surf',R.right,R.left)}
+  else surf=pg('Superfície da pista','surf',R.left.concat(R.right.slice().reverse()));
+  const cn=R.cones.map((c,i)=>{const[la,lo]=xy2ll(c.x,c.y);return`<Placemark><name>${i+1}</name><description>${{B:'azul (esq.)',Y:'amarelo (dir.)',O:'laranja (partida)',S:'slalom'}[c.c]} · elemento ${c.seg+1} · s=${c.s.toFixed(1)} m</description><styleUrl>#c${c.c}</styleUrl><Point><coordinates>${lo.toFixed(8)},${la.toFixed(8)},0</coordinates></Point></Placemark>`}).join('');
+  const segTxt=S.segs.map((g,i)=>`${i+1}. ${g.t==='S'?`Reta ${(+g.L).toFixed(1)} m`:g.t==='A'?`Curva ${g.dir==='L'?'esq':'dir'} R${g.R} m ${(+g.ang).toFixed(1)}°`:`Slalom ${g.n} cones @ ${g.sp} m`}`).join('\n');
+  return`<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Pista FS ${new Date().toISOString().slice(0,10)}</name>
+<description>${esc(`Comprimento ${R.len.toFixed(1)} m · largura ${S.width} m · ${R.cones.length} cones\nPartida: rumo ${S.start.hdg}°\n${segTxt}`)}</description>
+${st('surf','ffbfbfbf',1,'66808080')}${st('cl','ffffffff',2)}${st('eL',kmlColor('#3b82f6','ff'),2)}${st('eR',kmlColor('#facc15','ff'),2)}${st('area',kmlColor('#f5b301','ff'),2,kmlColor('#f5b301','22'))}
+${icon('cB',kmlColor('#3b82f6','ff'))}${icon('cY',kmlColor('#facc15','ff'))}${icon('cO',kmlColor('#f97316','ff'))}${icon('cS',kmlColor('#ffffff','ff'))}
+<Folder><name>Pista</name>${surf}${ls('Linha central','cl',R.pts.map(p=>[p.x,p.y]))}${ls('Bordo esquerdo (azul)','eL',R.left)}${ls('Bordo direito (amarelo)','eR',R.right)}</Folder>
+${$('expCones').checked?`<Folder><name>Cones (${R.cones.length})</name>${cn}</Folder>`:''}
+${S.areas.length?`<Folder><name>Área utilizável</name>${S.areas.map((a,i)=>pg('Área '+(i+1),'area',a)).join('')}</Folder>`:''}
+</Document></kml>`;
+}
+function buildGeo(){
+  const ll=([x,y])=>{const[la,lo]=xy2ll(x,y);return[+lo.toFixed(8),+la.toFixed(8)]};
+  const ring=a=>{const r=a.map(ll);r.push(r[0]);return r};
+  const F=(geom,props)=>({type:'Feature',geometry:geom,properties:props});
+  const fs=[];let surf;
+  if(S.closed&&R.closure.gap<0.5){const aL=Math.abs(polyArea(R.left)),aR=Math.abs(polyArea(R.right));const[o,i]=aL>aR?[R.left,R.right]:[R.right,R.left];
+    let O=ring(o),I=ring(i);if(polyArea(o)<0)O.reverse();if(polyArea(i)>0)I.reverse();surf=[O,I]}
+  else{const r=ring(R.left.concat(R.right.slice().reverse()));surf=[r]}
+  fs.push(F({type:'Polygon',coordinates:surf},{name:'Superfície da pista',largura_m:S.width,comprimento_m:+R.len.toFixed(1),fill:'#808080','fill-opacity':0.4,stroke:'#bfbfbf'}));
+  fs.push(F({type:'LineString',coordinates:R.pts.map(p=>ll([p.x,p.y]))},{name:'Linha central',stroke:'#ffffff','stroke-width':2}));
+  fs.push(F({type:'LineString',coordinates:R.left.map(ll)},{name:'Bordo esquerdo (azul)',stroke:'#3b82f6','stroke-width':2}));
+  fs.push(F({type:'LineString',coordinates:R.right.map(ll)},{name:'Bordo direito (amarelo)',stroke:'#facc15','stroke-width':2}));
+  S.areas.forEach((a,i)=>{const r=ring(a);if(polyArea(a)<0)r.reverse();fs.push(F({type:'Polygon',coordinates:[r]},{name:'Área utilizável '+(i+1),fill:'#f5b301','fill-opacity':0.15,stroke:'#f5b301'}))});
+  if($('expCones').checked)R.cones.forEach((c,i)=>fs.push(F({type:'Point',coordinates:ll([c.x,c.y])},{name:'Cone '+(i+1),cor:{B:'azul',Y:'amarelo',O:'laranja',S:'slalom'}[c.c],lado:c.side,elemento:c.seg+1,s_m:+c.s.toFixed(1),'marker-color':{B:'#3b82f6',Y:'#facc15',O:'#f97316',S:'#ffffff'}[c.c]})));
+  return JSON.stringify({type:'FeatureCollection',name:'Pista FS',features:fs});
+}
+function buildCsv(){return'id,cor,lado,lat,lon,x_E_m,y_N_m,s_m,elemento\n'+R.cones.map((c,i)=>{const[la,lo]=xy2ll(c.x,c.y);return[i+1,{B:'azul',Y:'amarelo',O:'laranja',S:'slalom'}[c.c],c.side,la.toFixed(8),lo.toFixed(8),c.x.toFixed(2),c.y.toFixed(2),c.s.toFixed(2),c.seg+1].join(',')}).join('\n')}
+function download(name,text,type){const b=new Blob([text],{type}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+const stamp=()=>new Date().toISOString().slice(0,10);
+$('dlKml').onclick=()=>download(`pista_${stamp()}.kml`,buildKml(),'application/vnd.google-earth.kml+xml');
+$('dlGeo').onclick=()=>download(`pista_${stamp()}.geojson`,buildGeo(),'application/geo+json');
+$('dlCsv').onclick=()=>download(`cones_${stamp()}.csv`,buildCsv(),'text/csv');
+$('dlJson').onclick=()=>download(`projeto_pista_${stamp()}.json`,JSON.stringify(S,null,1),'application/json');
+$('jsonIn').onchange=async e=>{const f=e.target.files[0];if(!f)return;e.target.value='';try{const o=JSON.parse(await f.text());snap();S=merge(clone(DEFAULT),o);S.segs=o.segs||[];loadBg();syncInputs();rebuildList();update();fit();toast('Projeto aberto.')}catch(err){toast('JSON inválido.')}};
+
+let tT=0;function toast(t){const el=$('toast');el.textContent=t;el.style.display='block';clearTimeout(tT);tT=setTimeout(()=>el.style.display='none',4200)}
+
+/* ---------- init ---------- */
+syncInputs();rebuildList();loadBg();resize();update();fit();setMode('pan');
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
